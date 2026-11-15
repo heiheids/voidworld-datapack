@@ -1,0 +1,2 @@
+execute in minecraft:the_nether run forceload add -32 -32 32 32
+execute in minecraft:the_end run forceload add -32 -32 32 32

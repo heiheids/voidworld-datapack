@@ -1,0 +1,16 @@
+# 本地验证世界与日志
+/test/
+/test2/
+/verify/
+
+# 改动前备份（体积大，且是历史快照）
+/backup/
+
+# 机器相关的 classpath
+/build/cp.txt
+
+# 日志
+*.log
+
+# 打包产物（内容与仓库重复，可用 generate.ps1 重建）
+/voidworld_v26.3_源码与构建.zip
