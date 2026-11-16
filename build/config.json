@@ -34,7 +34,10 @@
       "end_platform",
       "end_spike"
     ],
-    "strip_all_features": true
+    "strip_all_features": true,
+    "end_altar": {
+      "enabled": false
+    }
   },
   "aquifers": {
     "disable_lava": true

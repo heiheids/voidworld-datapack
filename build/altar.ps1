@@ -1,7 +1,21 @@
-# 末地中心祭坛：7x7 末地石基座 + 黑曜石/基岩/龙蛋祭坛
+# 末地中心祭坛：仅 7x7 末地石基座（极简版）
 # 由 generate.ps1 在打包前调用，复用其 NBT 写入函数与作用域变量（$cfg/$ns/$dataDir/$dfv）。
 
 $altarNs = $ns
+$altarEnabled = $true
+if ($cfg.features.PSObject.Properties.Name -contains 'end_altar') { $altarEnabled = [bool]$cfg.features.end_altar.enabled }
+if (-not $altarEnabled) {
+  # 关闭时清理旧产物，避免数据包里残留结构
+  $stale = @(
+    (Join-Path (Join-Path (Join-Path $dataDir $altarNs) 'structure') 'end_altar.json'),
+    (Join-Path (Join-Path (Join-Path $dataDir $altarNs) 'structure_set') 'end_altar.json'),
+    (Join-Path (Join-Path (Join-Path (Join-Path $dataDir $altarNs) 'template_pool') 'altar') 'start.json'),
+    (Join-Path (Join-Path (Join-Path (Join-Path $dataDir $altarNs) 'tags\worldgen') 'biome') 'end_altar.json'),
+    (Join-Path (Join-Path (Join-Path (Join-Path $dataDir $altarNs) 'structure') 'altar') 'altar.nbt')
+  )
+  foreach ($f in $stale) { if (Test-Path -LiteralPath $f) { Remove-Item -LiteralPath $f -Force } }
+  return
+}
 $altarTemplateDir = Join-Path (Join-Path $dataDir (Join-Path $altarNs 'structure')) 'altar'
 Ensure-Dir $altarTemplateDir
 
@@ -19,20 +33,13 @@ function New-AltarNbt([string[]]$palette, [object[]]$blocks, [int[]]$size, [int]
   return $ms.ToArray()
 }
 
-$palette = @('minecraft:air', 'minecraft:end_stone', 'minecraft:obsidian', 'minecraft:bedrock', 'minecraft:dragon_egg')
+$palette = @('minecraft:air', 'minecraft:end_stone')
 $blocks = New-Object System.Collections.Generic.List[object]
 for ($x = 0; $x -lt 7; $x++) {
   for ($z = 0; $z -lt 7; $z++) { $blocks.Add([pscustomobject]@{ p = @($x, 0, $z); st = 1 }) }
 }
-for ($x = 2; $x -le 4; $x++) {
-  for ($z = 2; $z -le 4; $z++) { $blocks.Add([pscustomobject]@{ p = @($x, 1, $z); st = 2 }) }
-}
-foreach ($c in @(@(2, 2, 2), @(4, 2, 2), @(2, 2, 4), @(4, 2, 4))) {
-  $blocks.Add([pscustomobject]@{ p = $c; st = 3 })
-}
-$blocks.Add([pscustomobject]@{ p = @(3, 2, 3); st = 4 })
 
-$raw = New-AltarNbt $palette $blocks.ToArray() @(7, 5, 7) $dfv
+$raw = New-AltarNbt $palette $blocks.ToArray() @(7, 1, 7) $dfv
 $ms2 = New-Object System.IO.MemoryStream
 $gz = New-Object System.IO.Compression.GZipStream($ms2, [System.IO.Compression.CompressionLevel]::Optimal)
 $gz.Write($raw, 0, $raw.Length); $gz.Dispose()
@@ -57,7 +64,7 @@ Write-JsonFile (Join-Path $altarStDir 'end_altar.json') ([pscustomobject]@{
   step                     = 'surface_structures'
   start_pool               = ($altarNs + ':altar/start')
   size                     = 1
-  start_height             = [pscustomobject]@{ absolute = 60 }
+  start_height             = [pscustomobject]@{ absolute = 64 }
   max_distance_from_center = 1
   use_expansion_hack       = $false
   terrain_adaptation       = 'none'
@@ -67,7 +74,7 @@ Write-JsonFile (Join-Path $altarStDir 'end_altar.json') ([pscustomobject]@{
 $altarSetDir = IdDir $altarNs 'structure_set'
 Ensure-Dir $altarSetDir
 Write-JsonFile (Join-Path $altarSetDir 'end_altar.json') ([pscustomobject]@{
-      placement  = [pscustomobject]@{
+  placement  = [pscustomobject]@{
     type             = 'minecraft:concentric_rings'
     count            = 1
     distance         = 0
