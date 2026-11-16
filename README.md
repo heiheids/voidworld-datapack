@@ -1,4 +1,5 @@
 # voidworld — Minecraft 26.3 虚空世界数据包
+<img width="1280" height="720" alt="2026-11-16_21 30 39" src="https://github.com/user-attachments/assets/5a3814a1-d551-481f-a7cc-704f220acd47" />
 
 把主世界变成只有「一层平滑石台阶」的虚空世界，把末地变成只有「黑曜石柱 + 落脚平台」的虚空末地。末地不生成主岛，也不额外生成任何平台。
 
