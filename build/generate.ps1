@@ -153,6 +153,11 @@ if ($stripAllFeatures -or ($cfg.features.strip_from_biomes -and @($cfg.features.
       if ($kept.Count -ne $orig.Count) { $changed = $true }
       [void]$newSteps.Add($kept)
     }
+    if ($cfg.features.PSObject.Properties.Name -contains 'center_spike' -and $cfg.features.center_spike.enabled -and $bname -eq $cfg.features.center_spike.biome) {
+      $csLast = $newSteps.Count - 1
+      $newSteps[$csLast] = @($newSteps[$csLast]) + $cfg.features.center_spike.placed_feature
+      $changed = $true
+    }
     if ($changed) {
       $bj.features = $newSteps.ToArray()
       Write-JsonFile (Join-Path $bdir ($bname + '.json')) $bj
@@ -343,6 +348,8 @@ foreach ($en in $zip.Entries) {
   $stats.structure_pad++
 }
 if (Test-Path (Join-Path $PSScriptRoot 'altar.ps1')) { & (Join-Path $PSScriptRoot 'altar.ps1') }
+
+if (Test-Path (Join-Path $PSScriptRoot 'center_spike.ps1')) { & (Join-Path $PSScriptRoot 'center_spike.ps1') }
 
 $zip.Dispose()
 

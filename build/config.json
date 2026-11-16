@@ -37,6 +37,13 @@
     "strip_all_features": true,
     "end_altar": {
       "enabled": false
+    },
+    "center_spike": {
+      "enabled": true,
+      "biome": "the_end",
+      "placed_feature": "vw:center_spike",
+      "height": 62,
+      "radius": 0
     }
   },
   "aquifers": {

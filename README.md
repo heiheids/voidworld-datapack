@@ -260,3 +260,47 @@ To re-enable the custom altar platform, set `features.end_altar.enabled` back to
 - **v1.2** Fixed over-voiding of the End — `floor_top = null` had wiped the main island too, which was the real reason "the altar never generated".
 - **v1.1** Stripped biome features (lava lakes, ores, vegetation); fixed placed-feature references.
 - **v1.0** Climate pinning removed icebergs; Overworld flattened to a single smooth stone slab layer.
+
+---
+
+## v1.6 更新：祭坛生成高度修复
+
+**问题**：击杀末影龙后，返回传送门（祭坛）生成在末地最底部。
+
+**原因**：原版 `EnderDragonFight.setDragonKilled` 用 `getHeightmapPos(MOTION_BLOCKING, 祭坛中心)` 决定高度；虚空末地中心没有任何方块，高度图返回 0，于是祭坛落在世界底部。
+
+**修复**：新增 `build/center_spike.ps1`，用一个**固定坐标**的 `minecraft:end_spike`（`centerX/centerZ = 0`）在末地正中心生成一根 1×1 黑曜石柱（y=0..61，y=62 基岩帽），把中心列高度图抬到 63。
+
+**验证**（直接读取区块 NBT 的 `Heightmaps`，即原版读取的同一份数据）：
+
+| 世界 | MOTION_BLOCKING | MOTION_BLOCKING_NO_LEAVES | WORLD_SURFACE |
+| --- | --- | --- | --- |
+| 修复前 | 0 | 0 | 0 |
+| 修复后 | **63** | **63** | 64 |
+
+打龙后祭坛/龙蛋即落在 **y≈63**（原版主岛地表高度）。
+
+**副作用**：末地正中心会多一根 1×1 的细柱（视觉上是一条竖线），这是抬高高度图所必需的。不想保留可把 `build/config.json` 里 `features.center_spike.enabled` 改为 `false`，代价是祭坛回到最底部。
+
+**注意**：数据包只影响新生成的区块；已有存档的末地中心没有这根柱子，必须新建世界。
+
+## v1.6 Update: altar spawn height fixed
+
+**Problem**: after killing the Ender Dragon, the exit portal (altar) spawned at the very bottom of the End.
+
+**Cause**: vanilla `EnderDragonFight.setDragonKilled` derives the height from `getHeightmapPos(MOTION_BLOCKING, altar centre)`; in a void End there are no blocks at the centre, so the heightmap returns 0 and the altar lands at the world bottom.
+
+**Fix**: new `build/center_spike.ps1` emits a **fixed-position** `minecraft:end_spike` (`centerX/centerZ = 0`) that places a 1×1 obsidian column at the End centre (y=0..61 plus a bedrock cap at y=62), raising the centre column's heightmap to 63.
+
+**Verification** (reading the chunk NBT `Heightmaps` — the same data vanilla uses):
+
+| World | MOTION_BLOCKING | MOTION_BLOCKING_NO_LEAVES | WORLD_SURFACE |
+| --- | --- | --- | --- |
+| before fix | 0 | 0 | 0 |
+| after fix | **63** | **63** | 64 |
+
+The altar/dragon egg therefore lands at **y≈63** (vanilla main-island surface height).
+
+**Side effect**: a thin 1×1 column now stands at the very centre of the End (a vertical line visually); it is required to raise the heightmap. Disable it via `features.center_spike.enabled = false` in `build/config.json` (the altar then returns to the bottom).
+
+**Note**: the datapack only affects newly generated chunks; existing saves lack the column and need a new world.
