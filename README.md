@@ -2,7 +2,7 @@
 
 把主世界变成只有「一层平滑石台阶」的虚空世界，把末地变成只有「黑曜石柱 + 落脚平台」的虚空末地。末地不生成主岛，也不额外生成任何平台。
 
-支持 **Minecraft 26.3**（`pack_format = 121`，`data_version = 5023`）。
+当前版本 **1.0.3**，支持 **Minecraft 26.3**（`pack_format = 121`，`data_version = 5023`）。
 
 > English documentation: see [English](#english) below.
 

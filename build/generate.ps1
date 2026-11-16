@@ -106,8 +106,12 @@ if (Test-Path -LiteralPath $dataDir) { Remove-Item -LiteralPath $dataDir -Recurs
 $metaPath = Join-Path $outRoot 'pack.mcmeta'
 if (Test-Path -LiteralPath $metaPath) { Remove-Item -LiteralPath $metaPath -Force }
 Ensure-Dir $outRoot; Ensure-Dir $distRoot
+$packDesc = $cfg.pack_description
+if ($cfg.PSObject.Properties.Name -contains 'version' -and $cfg.version) {
+  $packDesc = ($cfg.pack_name + ' ' + $cfg.version + ' - ' + $cfg.pack_description)
+}
 Write-JsonFile (Join-Path $outRoot 'pack.mcmeta') ([pscustomobject]@{
-  pack = [pscustomobject]@{ pack_format = $pf; min_format = $pf; max_format = $pf; description = $cfg.pack_description }
+  pack = [pscustomobject]@{ pack_format = $pf; min_format = $pf; max_format = $pf; description = $packDesc }
 })
 
 $stats = [pscustomobject]@{ feature_noop = 0; feature_keep = 0; structure_pad = 0; structure_keep = 0; pad_files = 0 }
@@ -358,3 +362,4 @@ $zipPath = Join-Path $distRoot $name
 if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
 [System.IO.Compression.ZipFile]::CreateFromDirectory($outRoot, $zipPath)
 Write-Output ('pack_format=' + $pf + ' data_version=' + $dfv + ' ' + ($stats | ConvertTo-Json -Compress) + ' zip=' + $name)
+

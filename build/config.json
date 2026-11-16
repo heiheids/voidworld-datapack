@@ -344,5 +344,6 @@
       }
     ]
   },
-  "force_warm_biomes": true
+  "force_warm_biomes": true,
+  "version": "1.0.3"
 }
