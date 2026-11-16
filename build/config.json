@@ -43,7 +43,8 @@
       "biome": "the_end",
       "placed_feature": "vw:center_spike",
       "height": 62,
-      "radius": 0
+      "radius": 0,
+      "guarded": false
     }
   },
   "aquifers": {

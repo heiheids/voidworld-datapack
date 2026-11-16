@@ -304,3 +304,51 @@ The altar/dragon egg therefore lands at **y≈63** (vanilla main-island surface 
 **Side effect**: a thin 1×1 column now stands at the very centre of the End (a vertical line visually); it is required to raise the heightmap. Disable it via `features.center_spike.enabled = false` in `build/config.json` (the altar then returns to the bottom).
 
 **Note**: the datapack only affects newly generated chunks; existing saves lack the column and need a new world.
+
+---
+
+## v1.7 更新：清除中心祭坛的多余水晶
+
+**问题**：中心柱为了让祭坛生成在正确高度而在末地中心建立，但原版 `EndSpikeFeature` 在该柱顶端会生成一颗**末影水晶**（`guarded=false` 时的固有行为），视觉多余，且会给末影龙回血。
+
+**修复**：新增 tick 函数 `vw:center_crystal_cleanup`，每刻执行
+
+```
+execute in minecraft:the_end positioned 0 62 0 run kill @e[type=minecraft:end_crystal,distance=..8]
+```
+
+半径 8 只覆盖末地中心，**不碰**半径约 42 处的 10 个原版柱水晶。
+
+**验证**（同一 tick 内先标记、后清理、再标记）：
+
+| 检查点 | 结果 |
+| --- | --- |
+| 清理前中心 8 格内是否有水晶 | 有（红石块标记出现） |
+| 清理后再检查 | 已消失（金块标记未出现） |
+| 中心柱是否完好 | 完好：黑曜石 y=0..61、基岩 y=62、火焰 y=63 |
+| 祭坛高度是否保持 | 保持：中心高度图 = 63 |
+
+**说明**：清理是按刻进行的，因此**已有存档也会生效**（不同于中心柱本身需要新世界）。
+
+## v1.7 Update: removing the extra crystal at the centre altar
+
+**Problem**: the centre column exists so the altar spawns at the correct height, but vanilla `EndSpikeFeature` also spawns an **End Crystal** on top of it (inherent behaviour when `guarded=false`). It is visually superfluous and heals the Ender Dragon.
+
+**Fix**: a new tick function `vw:center_crystal_cleanup` runs every tick:
+
+```
+execute in minecraft:the_end positioned 0 62 0 run kill @e[type=minecraft:end_crystal,distance=..8]
+```
+
+Radius 8 covers only the End centre and leaves the ten vanilla pillar crystals (radius ≈ 42) untouched.
+
+**Verification** (mark → clean → mark again within one tick):
+
+| Check | Result |
+| --- | --- |
+| Crystal within 8 blocks before cleaning | present (redstone marker placed) |
+| Crystal after cleaning | gone (gold marker not placed) |
+| Centre column intact | yes: obsidian y=0..61, bedrock y=62, fire y=63 |
+| Altar height preserved | yes: centre heightmap = 63 |
+
+**Note**: the cleanup runs every tick, so it also applies to **existing saves** (unlike the column itself, which needs a new world).
