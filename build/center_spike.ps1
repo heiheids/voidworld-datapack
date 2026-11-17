@@ -26,16 +26,15 @@ $csGuarded = $false
 if ($csCfg -and $null -ne $csCfg.guarded) { $csGuarded = [bool]$csCfg.guarded }
 $csRadius = 0
 if ($csCfg -and $null -ne $csCfg.radius) { $csRadius = [int]$csCfg.radius }
-Write-JsonFile (Join-Path $csFeatDir 'center_spike.json') ([pscustomobject]@{
-  type   = 'minecraft:end_spike'
-  spikes = @([pscustomobject]@{
-    centerX = 0
-    centerZ = 0
-    radius  = $csRadius
-    height  = $csHeight
-    guarded = $csGuarded
-  })
-})
+$csPf = 121
+$csParentPf = Get-Variable -Name 'pf' -Scope 1 -ErrorAction SilentlyContinue
+if ($csParentPf) { $csPf = [int]$csParentPf.Value }
+$csSpike = [pscustomobject]@{ centerX = 0; centerZ = 0; radius = $csRadius; height = $csHeight; guarded = $csGuarded }
+if ($csPf -lt 60) {
+  Write-JsonFile (Join-Path $csFeatDir 'center_spike.json') ([pscustomobject]@{ type = 'minecraft:end_spike'; config = [pscustomobject]@{ spikes = @($csSpike) } })
+} else {
+  Write-JsonFile (Join-Path $csFeatDir 'center_spike.json') ([pscustomobject]@{ type = 'minecraft:end_spike'; spikes = @($csSpike) })
+}
 Write-JsonFile (Join-Path $csPlacedDir 'center_spike.json') ([pscustomobject]@{
   feature   = ($csNs + ':center_spike')
   placement = @([pscustomobject]@{ type = 'minecraft:count'; count = 1 })

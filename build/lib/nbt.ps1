@@ -46,7 +46,12 @@ function Read-NbtPayload($r, [int]$Type) {
       return $list.ToArray()
     }
     10 { return (Read-NbtCompound $r) }
-    11 { $n = Read-NbtI32 $r; $r.P += ($n * 4); return $n }
+    11 {
+      $n = Read-NbtI32 $r
+      $arr = New-Object 'System.Int32[]' $n
+      for ($i = 0; $i -lt $n; $i++) { $arr[$i] = (Read-NbtI32 $r) }
+      return $arr
+    }
        12 {
       $n = Read-NbtI32 $r
       $arr = New-Object 'System.Int64[]' $n

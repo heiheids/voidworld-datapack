@@ -1,4 +1,5 @@
 param([string]$ConfigFile = 'config.json')
+$pf = 121
 Set-StrictMode -Version 1.0
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -31,8 +32,20 @@ function Write-JsonFile([string]$path, $obj) {
 }
 
 function Json([string]$text) { return $text | ConvertFrom-Json }
+# 1.21.x 的 density_function 资源不能写 minecraft:constant 对象，常量要写成裸数字
+function New-LegacyConst([double]$v) { if ($pf -lt 60) { return [double]$v } ; return [pscustomobject]@{ type = 'minecraft:constant'; value = [double]$v } }
+function ConvertTo-BlockStateRef($b) {
+  if ($null -eq $b) { return $b }
+  # 26.3 的 material_rule.result_state 是纯字符串（"minecraft:bedrock"），
+  # 只有 1.21.x 才要包成方块状态对象 {"Name": ...}。
+  if ($pf -ge 60) { return $b }
+  if ($b -is [string]) { return [pscustomobject]@{ Name = $b } }
+  return $b
+}
+function New-NoopFeature { if ($pf -lt 60) { return [pscustomobject]@{ type = 'minecraft:no_op'; config = [pscustomobject]@{} } } ; return [pscustomobject]@{ type = 'minecraft:no_op' } }
+function New-EndSpikeFeature($spikes) { if ($pf -lt 60) { return [pscustomobject]@{ type = 'minecraft:end_spike'; config = [pscustomobject]@{ spikes = @($spikes) } } } ; return [pscustomobject]@{ type = 'minecraft:end_spike'; spikes = @($spikes) } }
 
-function IdDir([string]$nsName, [string]$category) { return (Join-Path $dataDir (Join-Path $nsName (Join-Path 'worldgen' $category))) }
+function IdDir([string]$nsName, [string]$category) { if ($pf -lt 60 -and $category -eq 'feature') { $category = 'configured_feature' } ; return (Join-Path $dataDir (Join-Path $nsName (Join-Path 'worldgen' $category))) }
 
 function BE2([int]$v) { $b = [System.BitConverter]::GetBytes([int16]$v); [Array]::Reverse($b); return [byte[]]$b }
 function BE4([int]$v) { $b = [System.BitConverter]::GetBytes($v); [Array]::Reverse($b); return [byte[]]$b }
@@ -91,14 +104,15 @@ function New-FloorMaterialRule([double]$FloorTop, [double]$MinY, [string]$Block)
       true_at_and_below = [pscustomobject]@{ above_bottom = $below }
       false_at_and_above = [pscustomobject]@{ above_bottom = ($below + 1) }
     }
-    then_run = [pscustomobject]@{ type = 'minecraft:block'; result_state = $Block }
+    then_run = [pscustomobject]@{ type = 'minecraft:block'; result_state = (ConvertTo-BlockStateRef $Block) }
   }
 }
 
 $zip = Open-Zip $cfg.source.jar
 $vj = Json (Read-EntryText $zip 'version.json')
 $dfv = [int]$vj.world_version
-$pf = [int]$vj.pack_version.data_major
+$pf = if ($vj.pack_version.PSObject.Properties.Name -contains 'data_major') { [int]$vj.pack_version.data_major } else { [int]$vj.pack_version.data }
+$pf = $pf
 
 # 每次生成前清空 data/ 与 pack.mcmeta，否则改 config 后旧文件会残留，
 # 造成「配置关了但覆盖还在」的自相矛盾包（例如 end_spike 的 no_op 迟迟不消失）。
@@ -110,19 +124,30 @@ $packDesc = $cfg.pack_description
 if ($cfg.PSObject.Properties.Name -contains 'version' -and $cfg.version) {
   $packDesc = ($cfg.pack_name + ' ' + $cfg.version + ' - ' + $cfg.pack_description)
 }
-Write-JsonFile (Join-Path $outRoot 'pack.mcmeta') ([pscustomobject]@{
-  pack = [pscustomobject]@{ pack_format = $pf; min_format = $pf; max_format = $pf; description = $packDesc }
-})
+$packMeta = [pscustomobject]@{ pack_format = $pf; description = $packDesc }
+# min_format/max_format 只有较新版才认，1.21.1 写了会报不认识
+if ($pf -ge 60) {
+  $packMeta | Add-Member -NotePropertyName min_format -NotePropertyValue $pf -Force
+  $packMeta | Add-Member -NotePropertyName max_format -NotePropertyValue $pf -Force
+}
+Write-JsonFile (Join-Path $outRoot 'pack.mcmeta') ([pscustomobject]@{ pack = $packMeta })
 
 $stats = [pscustomobject]@{ feature_noop = 0; feature_keep = 0; structure_pad = 0; structure_keep = 0; pad_files = 0 }
 
 $fdir = IdDir 'minecraft' 'feature'
 Ensure-Dir $fdir
+# keep_configured：这些「配置特性」保持原版，不被替换成 no_op。
+# 用途：树苗/蘑菇等靠「玩家主动催熟」触发的特性。世界生成不受影响，因为
+# placed_feature 全被换成 count=0 的 vw:noop，群系 features 列表也被清空。
+$keepConfigured = @()
+if ($cfg.features.PSObject.Properties.Name -contains 'keep_configured') { $keepConfigured = @($cfg.features.keep_configured) }
+$stats | Add-Member -NotePropertyName configured_keep -NotePropertyValue 0 -Force
 foreach ($en in $zip.Entries) {
   if ($en.FullName -notmatch '^data/minecraft/worldgen/feature/([^/]+)\.json$') { continue }
   $id = $Matches[1]
   if ($cfg.features.keep -contains $id) { $stats.feature_keep++; continue }
-  Write-JsonFile (Join-Path $fdir ($id + '.json')) ([pscustomobject]@{ type = 'minecraft:no_op' })
+  if ($keepConfigured -contains $id) { $stats.configured_keep++; continue }
+  Write-JsonFile (Join-Path $fdir ($id + '.json')) (New-NoopFeature)
   $stats.feature_noop++
 }
 
@@ -142,7 +167,9 @@ if ($stripAllFeatures -or ($cfg.features.strip_from_biomes -and @($cfg.features.
     $bj = Json (Read-EntryText $zip $en.FullName)
     if ($stripAllFeatures) {
       # 洞穴/峡谷雕刻器会在世界底部灌岩浆（实测 y=-63..-56 全是 lava）。
-      $bj.carvers = @()
+      # 注意：不能写成 `$bj.carvers = if (...) {...} else { @() }`——if 表达式会把空数组
+      # 展开成 $null，26.3 的 biome 里就成了 "carvers": null，注册表直接解析失败。
+      if ($pf -lt 60) { $bj.carvers = [pscustomobject]@{} } else { $bj.carvers = New-Object 'object[]' 0 }
     }
     $changed = $false
     $newSteps = New-Object System.Collections.ArrayList
@@ -175,7 +202,7 @@ if ($stripAllFeatures -or ($cfg.features.strip_from_biomes -and @($cfg.features.
 # 需要一个“真实存在”的空特性 ID：minecraft:no_op 只是特性类型，不是已配置特性 ID。
 $noopFeatDir = IdDir $ns 'feature'
 Ensure-Dir $noopFeatDir
-Write-JsonFile (Join-Path $noopFeatDir 'noop.json') ([pscustomobject]@{ type = 'minecraft:no_op' })
+Write-JsonFile (Join-Path $noopFeatDir 'noop.json') (New-NoopFeature)
 
 $noopPlaced = $true
 if ($cfg.features.PSObject.Properties.Name -contains 'noop_placed_features') { $noopPlaced = [bool]$cfg.features.noop_placed_features }
@@ -208,10 +235,16 @@ foreach ($dim in $cfg.dimensions) {
   $denDir = Join-Path (IdDir $ns 'density_function') 'floor'; Ensure-Dir $denDir
   $denId = $ns + ':floor/' + $nsName
   if ($null -ne $dim.floor_top) {
-    $denObj = [pscustomobject]@{ type = 'minecraft:gradient'; axis = 'y'; from_coordinate = [double]$dim.floor_top; from_value = [double]$dim.solid_density; to_coordinate = [double]($dim.floor_top + 1); to_value = [double](-$dim.solid_density) }
+    $denObj = if ($pf -lt 60) {
+      # 1.21.x：梯度用 y_clamped_gradient，字段是 from_y/to_y
+      [pscustomobject]@{ type = 'minecraft:y_clamped_gradient'; from_y = [double]$dim.floor_top; from_value = [double]$dim.solid_density; to_y = [double]($dim.floor_top + 1); to_value = [double](-$dim.solid_density) }
+    } else {
+      [pscustomobject]@{ type = 'minecraft:gradient'; axis = 'y'; from_coordinate = [double]$dim.floor_top; from_value = [double]$dim.solid_density; to_coordinate = [double]($dim.floor_top + 1); to_value = [double](-$dim.solid_density) }
+    }
     $sea = $minY
   } else {
-    $denObj = [pscustomobject]@{ type = 'minecraft:constant'; value = [double](-$dim.solid_density) }
+    # 1.21.x：常量密度直接写裸数字，minecraft:constant 不被接受
+    $denObj = if ($pf -lt 60) { [double]0 - [double]$dim.solid_density } else { [pscustomobject]@{ type = 'minecraft:constant'; value = [double](-$dim.solid_density) } }
     $sea = $minY
   }
   Write-JsonFile (Join-Path $denDir ($nsName + '.json')) $denObj
@@ -219,25 +252,39 @@ foreach ($dim in $cfg.dimensions) {
   $mrId = $ns + ':surface/' + $nsName
   $blk = if ($null -ne $dim.floor_top) { $dim.floor_block } else { 'minecraft:air' }
   $mrObj = if ($null -ne $dim.floor_top) {
-    [pscustomobject]@{ type = 'minecraft:block'; result_state = $blk }
+    [pscustomobject]@{ type = 'minecraft:block'; result_state = (ConvertTo-BlockStateRef $blk) }
   } else {
-    [pscustomobject]@{ type = 'minecraft:block'; result_state = $blk }
+    [pscustomobject]@{ type = 'minecraft:block'; result_state = (ConvertTo-BlockStateRef $blk) }
   }
   Write-JsonFile (Join-Path $mrDir ($nsName + '.json')) $mrObj
   $nsObj = Json (Read-EntryText $zip ('data/minecraft/worldgen/noise_settings/' + $nsName + '.json'))
+  # 1.21.x 的 noise_settings 用 aquifers_enabled，且表面规则叫 surface_rule、含水层键在 noise_router 里
+  $isLegacy = $nsObj.PSObject.Properties.Name -contains 'aquifers_enabled'
   $nsObj.sea_level = $sea
-  $nsObj.default_fluid = 'minecraft:air'
-  if ($null -ne $dim.floor_top) { $nsObj.default_block = $dim.floor_block }
-  $nsObj.material_rule = $mrId
+  $nsObj.default_fluid = if ($isLegacy) { [pscustomobject]@{ Name = 'minecraft:air' } } else { 'minecraft:air' }
+  if ($null -ne $dim.floor_top) {
+    $nsObj.default_block = if ($isLegacy) { [pscustomobject]@{ Name = $dim.floor_block } } else { $dim.floor_block }
+  }
+  if ($isLegacy) {
+    $nsObj | Add-Member -NotePropertyName surface_rule -NotePropertyValue $mrObj -Force
+  } else {
+    $nsObj.material_rule = $mrId
+  }
   $nsObj.noise_router.final_density = $denId
-  if ($cfg.PSObject.Properties.Name -contains 'force_warm_biomes' -and $cfg.force_warm_biomes -and
+  # 气候钉死只对「明确开启」的维度生效。下界同样带 temperature/vegetation 噪声，
+  # 一起钉成常量后 multi_noise 只选得到距离最近的那个群系（温度 1.0 / 湿度 0.0
+  # 的最近点是 crimson_forest），整个下界塌成单一群系，堡垒这类靠群系标签
+  # 决定的生成物也跟着受影响。
+  $pinClimate = ($nsName -eq 'overworld')
+  if ($dim.PSObject.Properties.Name -contains 'pin_climate') { $pinClimate = [bool]$dim.pin_climate }
+  if ($cfg.PSObject.Properties.Name -contains 'force_warm_biomes' -and $cfg.force_warm_biomes -and $pinClimate -and
       $nsObj.noise_router.PSObject.Properties.Name -contains 'temperature') {
     # 冰山只长在 frozen_ocean / deep_frozen_ocean。把气候噪声钉成暖干常量，
     # multi_noise 就永远选不到寒冷生物群系，冰山从源头消失。
     $clDir = Join-Path (IdDir $ns 'density_function') 'climate'
     Ensure-Dir $clDir
-    Write-JsonFile (Join-Path $clDir 'temperature.json') ([pscustomobject]@{ type = 'minecraft:constant'; value = 1.0 })
-    Write-JsonFile (Join-Path $clDir 'vegetation.json') ([pscustomobject]@{ type = 'minecraft:constant'; value = 0.0 })
+    Write-JsonFile (Join-Path $clDir 'temperature.json') (New-LegacyConst 1.0)
+    Write-JsonFile (Join-Path $clDir 'vegetation.json') (New-LegacyConst 0.0)
     $nsObj.noise_router.temperature = $ns + ':climate/temperature'
     $nsObj.noise_router.vegetation = $ns + ':climate/vegetation'
   }
@@ -246,18 +293,12 @@ foreach ($dim in $cfg.dimensions) {
     # 仍会算出各种地表高度，导致台阶散落在半空；这里把它钉死在地板层。
     $slDir = Join-Path (IdDir $ns 'density_function') 'surface'; Ensure-Dir $slDir
     $slId = $ns + ':surface/' + $nsName
-    Write-JsonFile (Join-Path $slDir ($nsName + '.json')) ([pscustomobject]@{
-      type = 'minecraft:constant'
-      value = [double]$dim.floor_top
-    })
-    $nsObj.noise_router.chunk_surface_level = $slId
+    Write-JsonFile (Join-Path $slDir ($nsName + '.json')) (New-LegacyConst ([double]$dim.floor_top))
+    if (-not $isLegacy) { $nsObj.noise_router.chunk_surface_level = $slId }
     # 表面系统真正读取的是 <noise_settings>/preliminary_surface_level 这个原版函数，
     # 在虚空里它仍会算出各种地表高度；一并覆盖成常量地板高度。
     $psDir = Join-Path (Join-Path $dataDir 'minecraft') ('worldgen/density_function/' + $nsName); Ensure-Dir $psDir
-    Write-JsonFile (Join-Path $psDir 'preliminary_surface_level.json') ([pscustomobject]@{
-      type = 'minecraft:constant'
-      value = [double]$dim.floor_top
-    })
+    Write-JsonFile (Join-Path $psDir 'preliminary_surface_level.json') (New-LegacyConst ([double]$dim.floor_top))
   }
   if ($cfg.aquifers -and $cfg.aquifers.disable_lava -and $nsObj.aquifers) {
     # 只把 lava 钉成 -1 仍会在世界底部产出岩浆；把决定流体位置的噪声一并钉成常量，
@@ -269,6 +310,14 @@ foreach ($dim in $cfg.dimensions) {
     $nsObj.aquifers.barrier = $neg
     if ($null -ne $dim.floor_top) {
       $nsObj.aquifers.surface_level = [pscustomobject]@{ type = 'minecraft:constant'; value = [double]$dim.floor_top }
+    }
+  }
+  if ($isLegacy -and $cfg.aquifers -and $cfg.aquifers.disable_lava) {
+    # 旧版把含水层参数放在 noise_router 下，钉成 -1 即不产流体
+    foreach ($k in @('barrier','fluid_level_floodedness','fluid_level_spread','lava')) {
+      if ($nsObj.noise_router.PSObject.Properties.Name -contains $k) {
+        $nsObj.noise_router.$k = -1.0
+      }
     }
   }
   Write-JsonFile (Join-Path (IdDir 'minecraft' 'noise_settings') ($nsName + '.json')) $nsObj
@@ -286,10 +335,7 @@ foreach ($pname in $cfg.dimension_type_extra.PSObject.Properties.Name) {
 if ($cfg.end_spikes -and $cfg.end_spikes.enabled -and $cfg.end_spikes.spikes) {
   $esId = [string]$cfg.end_spikes.feature_id
   $esBiome = [string]$cfg.end_spikes.biome
-  Write-JsonFile (Join-Path (IdDir $ns 'feature') ($esId + '.json')) ([pscustomobject]@{
-    type = 'minecraft:end_spike'
-    spikes = @($cfg.end_spikes.spikes)
-  })
+  Write-JsonFile (Join-Path (IdDir $ns 'feature') ($esId + '.json')) (New-EndSpikeFeature $cfg.end_spikes.spikes)
   Write-JsonFile (Join-Path (IdDir $ns 'placed_feature') ($esId + '.json')) ([pscustomobject]@{
     feature = ($ns + ':' + $esId)
     placement = @([pscustomobject]@{ type = 'minecraft:biome' })
@@ -317,6 +363,7 @@ foreach ($en in $zip.Entries) {
   $id = $Matches[1]
   $orig = Json (Read-EntryText $zip $en.FullName)
   $opt = $cfg.structure_defaults
+  $optFloorBlock = $cfg.structure_defaults.pad_floor_block
   if ($cfg.structures.PSObject.Properties.Name -contains $id) {
     $e = $cfg.structures.$id
     $opt = [pscustomobject]@{
@@ -324,11 +371,16 @@ foreach ($en in $zip.Entries) {
       pad = $(if ($e.pad) { $e.pad } else { $cfg.structure_defaults.pad })
       pad_floor = $(if ($null -ne $e.pad_floor) { $e.pad_floor } else { $cfg.structure_defaults.pad_floor })
     }
+    # 允许单个结构自带地板方块（例如要塞铺一层下界砖，好让原版「脚下必须是下界砖」的
+    # isInNetherFortressBounds 判定成立）
+    if ($e.PSObject.Properties.Name -contains 'pad_floor_block' -and $e.pad_floor_block) {
+      $optFloorBlock = $e.pad_floor_block
+    }
   }
   if ($opt.action -eq 'keep') { $stats.structure_keep++; continue }
   $padId = $ns + ':pad/' + $id
   $poolId = $ns + ':start/' + $id
-  $fb = if ($opt.pad_floor) { $cfg.structure_defaults.pad_floor_block } else { $null }
+  $fb = if ($opt.pad_floor) { $optFloorBlock } else { $null }
   $raw = New-PadNbt ([int]$opt.pad[0]) ([int]$opt.pad[1]) ([int]$opt.pad[2]) $fb $dfv
   $ms = New-Object System.IO.MemoryStream
   $gz = New-Object System.IO.Compression.GZipStream($ms, [System.IO.Compression.CompressionLevel]::Optimal)
@@ -362,4 +414,3 @@ $zipPath = Join-Path $distRoot $name
 if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
 [System.IO.Compression.ZipFile]::CreateFromDirectory($outRoot, $zipPath)
 Write-Output ('pack_format=' + $pf + ' data_version=' + $dfv + ' ' + ($stats | ConvertTo-Json -Compress) + ' zip=' + $name)
-

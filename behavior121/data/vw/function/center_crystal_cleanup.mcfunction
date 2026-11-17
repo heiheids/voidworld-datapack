@@ -1,0 +1,1 @@
+execute in minecraft:the_end positioned 0 62 0 run kill @e[type=minecraft:end_crystal,distance=..8]

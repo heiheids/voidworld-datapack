@@ -403,3 +403,101 @@ noise_settings/end.json 和 material_rule/surface/end.json。实测新世界 end
 即将进行的操作: 文档标注1.0.3并同步
 说明: 在 README 与打包说明标注版本号 1.0.3，重建交付包，提交并推送到 GitHub（用户已开启 VPN）
 ================================================================
+
+================================================================
+时间: 2026-11-16 21:13:41
+备份: backup\20261116-211341_适配1.21.1-改造生成器.zip  (764 个文件)
+即将进行的操作: 适配1.21.1-改造生成器
+说明: 1.21.1 与 26.3 的 noise_settings 结构不同：1.21.1 无 material_rule/aquifers 对象/chunk_surface_level，改用 surface_rule 与 noise_router 内的 barrier/lava/fluid_level_*；version.json 的 pack_version 用 data 字段而非 data_major。计划让 generate.ps1 按 schema 自动分支，并把配置指向 1.21.1 jar、pack_format 48
+================================================================
+
+================================================================
+时间: 2026-11-16 21:20:30
+备份: backup\20261116-212030_改造生成器支持1.21.1.zip  (764 个文件)
+即将进行的操作: 改造生成器支持1.21.1
+说明: 给 generate.ps1 加版本分支：pack_format 回退 data 字段；1.21.1 只写 pack_format；noise_settings 按 aquifers_enabled 判定旧版结构，改用 surface_rule、物品栈形式 default_block/fluid、含水层键写进 noise_router；新增 config-1.21.1.json 指向 1.21.1 jar 与独立输出目录
+================================================================
+
+================================================================
+时间: 2026-11-16 21:29:30
+备份: backup\20261116-212930_修复1.21.1含水层键形态.zip  (765 个文件)
+即将进行的操作: 修复1.21.1含水层键形态
+说明: 真实服务端启动已跑通，报错 Failed to parse either / Not a number 指向 noise_router 的 barrier/lava 等 4 个键：1.21.1 原版这些字段是裸数字 0.0，不是 minecraft:constant 对象。计划把生成器的旧版含水层注入改成裸数字 -1.0
+================================================================
+
+================================================================
+时间: 2026-11-16 21:33:36
+备份: backup\20261116-213336_修复1.21.1生物群系carvers形态.zip  (765 个文件)
+即将进行的操作: 修复1.21.1生物群系carvers形态
+说明: 服务端报 Not a JSON object: [] 定位到 biome 的 carvers 字段：1.21.1 原版是空对象 {}，生成器写成数组 []。计划按 pack_format 判定，旧版写空对象
+================================================================
+
+================================================================
+时间: 2026-11-16 21:35:25
+备份: backup\20261116-213525_修复1.21.1密度函数形态.zip  (765 个文件)
+即将进行的操作: 修复1.21.1密度函数形态
+说明: 服务端报 vw:climate/temperature 解析失败：1.21.1 的 density_function 资源不接受 minecraft:constant 对象，常量要写成裸数字；梯度要用 y_clamped_gradient(from_y/to_y)。计划按 pack_format 分支生成
+================================================================
+
+================================================================
+时间: 2026-11-16 21:38:26
+备份: backup\20261116-213826_修复1.21.1特性目录与preliminary.zip  (765 个文件)
+即将进行的操作: 修复1.21.1特性目录与preliminary
+说明: 1.21.1 的已配置特性目录是 worldgen/configured_feature（jar 内 196 个），生成器写在 worldgen/feature 导致 vw:center_spike/vw:noop 未绑定；另有 preliminary_surface_level 仍写 minecraft:constant 对象导致解析失败。计划让 IdDir 在旧版把 feature 映射为 configured_feature，并把 preliminary 改用 New-LegacyConst
+================================================================
+
+================================================================
+时间: 2026-11-16 21:47:13
+备份: backup\20261116-214713_修复1.21.1配置特性config包装.zip  (765 个文件)
+即将进行的操作: 修复1.21.1配置特性config包装
+说明: 服务端报 No key config in MapLike，1.21.1 的 configured_feature 必须是 {type, config} 结构。计划新增两个构造辅助函数，替换 no_op 与 end_spike 三处写入
+================================================================
+
+================================================================
+时间: 2026-11-16 21:49:31
+备份: backup\20261116-214931_修复center_spike配置特性config.zip  (765 个文件)
+即将进行的操作: 修复center_spike配置特性config
+说明: 1.21.1 的 configured_feature 需要 {type,config} 包装；center_spike.ps1 第29-38行仍是平铺写法，导致服务端 No key config。计划按父作用域 pf 判定，旧版输出 config 包装
+================================================================
+
+================================================================
+时间: 2026-11-16 22:05:57
+备份: backup\20261116-220557_修复1.21.1表面规则强制覆盖.zip  (765 个文件)
+即将进行的操作: 修复1.21.1表面规则强制覆盖
+说明: 实测 1.21.1 主世界 y=-64 生成基岩、无平滑石台阶：因为生成器只在 surface_rule 缺失时才注入地板规则，而 1.21.1 源文件自带原版 surface_rule 序列（首段输出 bedrock）。计划改为旧版无条件覆盖 surface_rule
+================================================================
+
+================================================================
+时间: 2026-11-16 22:12:33
+备份: backup\20261116-221233_修复1.21.1表面规则result_state形态.zip  (765 个文件)
+即将进行的操作: 修复1.21.1表面规则result_state形态
+说明: 1.21.1 要求 surface_rule.result_state 为方块状态对象 {"Name":...}，当前写成裸字符串导致 Not a JSON object: "minecraft:air"，三个 noise_settings 全部 Unbound、服务器启动失败。计划新增 ConvertTo-BlockStateRef 助手并替换 99/238/240 行
+================================================================
+
+================================================================
+时间: 2026-11-16 22:44:33
+备份: backup\20261116-224432_修复1.21.1末地中心柱并部署到实例.zip  (765 个文件)
+即将进行的操作: 修复1.21.1末地中心柱并部署到实例
+说明: 1.21.1 的 the_end 生物群系原先不会被写出（该群系只保留 end_spike/end_platform，剥离后无变化，$changed 恒为 false），而 center_spike 指向 end_highlands，导致末地中心柱完全没生成、祭坛仍会落到世界底部。现把 config-1.21.1.json 的 center_spike.biome 改为 the_end，生成器即写出 the_end.json 并在末段追加 vw:center_spike。实测中心 (0,0)：黑曜石 y=0..61、基岩 y=62、火 y=63，MOTION_BLOCKING=63、WORLD_SURFACE=64，与 26.3 一致。随后把 dist121\voidworld_v1.21.1.zip（pack_format 48）部署到 E:\@26.3\.minecraft\versions\1.21.1-NeoForge\saves\虚空世界\datapacks\ 并在该存档 level.dat 里启用（Enabled 追加 file/voidworld_v1.21.1.zip，confirmedExperimentalSettings=1），实机进入验证主世界仅 y=-64 一层平滑石台阶。
+================================================================
+
+================================================================
+时间: 2026-11-16 23:32:40
+备份: backup\20261116-233240_修复下界塌成单一群系.zip  (765 个文件)
+即将进行的操作: 修复下界塌成单一群系
+说明: force_warm_biomes 的气候钉死原本对所有带 temperature 键的维度生效，下界也被钉成 constant 1.0/0.0，multi_noise 的最近点恒为 crimson_forest，整个下界只剩一个群系。现改为按维度开关：generate.ps1 新增 $pinClimate（默认仅 overworld，可被 dimensions[].pin_climate 覆盖），config.json 与 config-1.21.1.json 的 overworld 标 true、nether/end 标 false。重建后两个版本的 noise_router.temperature/vegetation 与各自 jar 内原版逐字段一致（diff 验证为 [same]）。1.21.1 服务端实测：12321 个下界区块里 full 区块出现 5 个原版下界群系（nether_wastes / crimson_forest / warped_forest / soul_sand_valley / basalt_deltas），结构正常（fortress 13、bastion_remnant 7、nether_fossil 373、ruined_portal_nether 11）；主世界仍只有 y=-64 一层平滑石台阶，末地中心柱 MOTION_BLOCKING 仍为 63。已重新部署到实例存档（旧包备份为 .bak_crimsononly）。
+================================================================
+
+================================================================
+时间: 2026-11-17 00:36:57
+备份: backup\20261117-003657_修复26.3包解析失败并核实要塞结构.zip  (765 个文件)
+即将进行的操作: 修复26.3包解析失败并核实要塞结构
+说明: 26.3 包整体无法加载（Failed to load datapacks）根因有两个，都来自适配 1.21.1 时留下的分支泄漏：① ConvertTo-BlockStateRef 无条件把 result_state 包成 {Name:...}，26.3 需要纯字符串；② 生物群系 carvers 写成 = if (...) {...} else { @() }，if 表达式把空数组展开成 \，26.3 的 biome 变成 carvers:null。两处都改为按 pack_format 分支（26.x 字符串/carvers []，1.21.x 对象/carvers {}）。同时给 generate.ps1 增加单结构 pad_floor_block 支持（默认不启用，要塞仍为空垫）。实测：26.3 与 1.21.1 服务端均能加载（Done），26.3 下界 8214 区块有 fortress 5 / bastion 8 / fossil 392 / ruined_portal 7，方块只有 air + y=0 平滑石台阶（554496），无 nether_bricks；1.21.1 下界 6845 区块 fortress 4 / bastion 5。要塞 piece 包围盒实测为 43x33x43、y=0..32，覆盖地板层，ChunkGenerator.getMobsAt 会按 PIECE 包围盒套用结构 spawn_overrides。顺手修了 lib/nbt.ps1 的 IntArray 解析（原来只返回长度）。已重新部署到 4 个存档。
+================================================================
+
+================================================================
+时间: 2026-11-17 23:42:44
+备份: backup\20261117-234244_修复26.3树苗催熟不长树.zip  (735 个文件)
+即将进行的操作: 修复26.3树苗催熟不长树
+说明: 26.3 版把所有 configured_feature 都换成 minecraft:no_op（含 oak/birch 等树特性）。TreeGrower.growTree 先 removeSapling 再调 Feature.place，NoOpFeature.place 恒返回 true，于是树苗被消耗却什么也不长；/place feature minecraft:oak 也放不出任何方块。现新增 config 字段 features.keep_configured（30 个树/菌类特性），生成器对这些 id 不写 no_op，保持原版。世界生成不受影响：placed_feature 仍全部是 count=0 的 vw:noop、群系 features 列表仍被清空。实测：重建后 26.3 包内不再有 feature/oak.json、feature/birch.json；服务端 /place feature minecraft:oak 与 birch 都能放下原木；三组骨粉催熟中两组直接长成原木；同一包生成 1089 个主世界区块仍只有 air + y=-64 平滑石台阶（57600），无原木无树叶。1.21.1 构建的 configured_feature 本来就没被覆盖（生成器只匹配 worldgen/feature/ 路径），催熟一直正常，此次同步加上 keep_configured 字段保持一致。已部署到 26.3 三个存档。
+================================================================

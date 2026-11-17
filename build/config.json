@@ -45,7 +45,39 @@
       "height": 62,
       "radius": 0,
       "guarded": false
-    }
+    },
+    "keep_configured": [
+      "oak",
+      "birch",
+      "spruce",
+      "jungle_tree",
+      "jungle_bush",
+      "acacia",
+      "dark_oak",
+      "mangrove",
+      "tall_mangrove",
+      "cherry",
+      "pale_oak",
+      "pale_oak_bonemeal",
+      "fancy_oak",
+      "pine",
+      "mega_jungle_tree",
+      "mega_pine",
+      "mega_spruce",
+      "super_birch_bees",
+      "super_birch_bees_0002",
+      "swamp_oak",
+      "azalea_tree",
+      "rooted_azalea_tree",
+      "huge_brown_mushroom",
+      "huge_red_mushroom",
+      "brown_mushroom",
+      "red_mushroom",
+      "crimson_fungus",
+      "warped_fungus",
+      "crimson_fungus_planted",
+      "warped_fungus_planted"
+    ]
   },
   "aquifers": {
     "disable_lava": true
@@ -54,6 +86,7 @@
     {
       "noise_settings": "overworld",
       "dimension_type": "overworld",
+      "pin_climate": true,
       "floor_top": -64,
       "floor_block": "minecraft:smooth_stone_slab",
       "solid_density": 8.0
@@ -61,12 +94,14 @@
     {
       "noise_settings": "nether",
       "dimension_type": "the_nether",
+      "pin_climate": false,
       "floor_top": 0,
       "floor_block": "minecraft:smooth_stone_slab",
       "solid_density": 8.0
     },
     {
       "noise_settings": "end",
+      "pin_climate": false,
       "floor_top": null,
       "floor_block": "minecraft:air"
     }

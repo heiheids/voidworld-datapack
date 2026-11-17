@@ -1,0 +1,384 @@
+{
+  "namespace": "vw",
+  "output_dir": "behavior121",
+  "dist_dir": "dist121",
+  "pack_name": "voidworld",
+  "pack_description": "void + structure bounds",
+  "source": {
+    "jar": "E:/@26.3/.minecraft/versions/1.21.1-NeoForge/1.21.1-NeoForge.jar"
+  },
+  "dimension_type_extra": {},
+  "nbt": {
+    "palette_key": "palette",
+    "palette_air": "minecraft:air"
+  },
+  "features": {
+    "mode": "no_op_all",
+    "keep": [
+      "end_platform",
+      "end_spike",
+      "end_podium_active",
+      "end_podium_inactive"
+    ],
+    "strip_from_biomes": [
+      "minecraft:iceberg_packed",
+      "minecraft:iceberg_blue",
+      "minecraft:blue_ice",
+      "minecraft:ice_patch",
+      "minecraft:ice_spike",
+      "minecraft:pile_ice",
+      "minecraft:freeze_top_layer"
+    ],
+    "noop_placed_features": true,
+    "keep_placed": [
+      "end_platform",
+      "end_spike"
+    ],
+    "strip_all_features": true,
+    "end_altar": {
+      "enabled": false
+    },
+    "center_spike": {
+      "enabled": true,
+      "biome": "the_end",
+      "placed_feature": "vw:center_spike",
+      "height": 62,
+      "radius": 0,
+      "guarded": false
+    },
+    "keep_configured": [
+      "oak",
+      "birch",
+      "spruce",
+      "jungle_tree",
+      "jungle_bush",
+      "acacia",
+      "dark_oak",
+      "mangrove",
+      "tall_mangrove",
+      "cherry",
+      "pale_oak",
+      "pale_oak_bonemeal",
+      "fancy_oak",
+      "pine",
+      "mega_jungle_tree",
+      "mega_pine",
+      "mega_spruce",
+      "super_birch_bees",
+      "super_birch_bees_0002",
+      "swamp_oak",
+      "azalea_tree",
+      "rooted_azalea_tree",
+      "huge_brown_mushroom",
+      "huge_red_mushroom",
+      "brown_mushroom",
+      "red_mushroom",
+      "crimson_fungus",
+      "warped_fungus",
+      "crimson_fungus_planted",
+      "warped_fungus_planted"
+    ]
+  },
+  "aquifers": {
+    "disable_lava": true
+  },
+  "dimensions": [
+    {
+      "noise_settings": "overworld",
+      "dimension_type": "overworld",
+      "pin_climate": true,
+      "floor_top": -64,
+      "floor_block": "minecraft:smooth_stone_slab",
+      "solid_density": 8.0
+    },
+    {
+      "noise_settings": "nether",
+      "dimension_type": "the_nether",
+      "pin_climate": false,
+      "floor_top": 0,
+      "floor_block": "minecraft:smooth_stone_slab",
+      "solid_density": 8.0
+    },
+    {
+      "noise_settings": "end",
+      "pin_climate": false,
+      "floor_top": null,
+      "floor_block": "minecraft:air"
+    }
+  ],
+  "structure_defaults": {
+    "action": "pad",
+    "pad": [
+      13,
+      9,
+      13
+    ],
+    "pad_floor": false,
+    "pad_floor_block": "minecraft:smooth_stone_slab",
+    "max_pieces": 1,
+    "terrain_adaptation": "none",
+    "project_to_heightmap": "WORLD_SURFACE_WG",
+    "start_height": {
+      "absolute": 0
+    },
+    "max_distance_from_center": 80,
+    "use_expansion_hack": false,
+    "nbt_compression": "gzip"
+  },
+  "structures": {
+    "swamp_hut": {
+      "pad": [
+        13,
+        10,
+        13
+      ],
+      "pad_floor": false
+    },
+    "igloo": {
+      "pad": [
+        13,
+        12,
+        13
+      ]
+    },
+    "desert_pyramid": {
+      "pad": [
+        23,
+        23,
+        23
+      ]
+    },
+    "jungle_pyramid": {
+      "pad": [
+        15,
+        14,
+        15
+      ]
+    },
+    "pillager_outpost": {
+      "pad": [
+        21,
+        15,
+        21
+      ],
+      "pad_floor": false
+    },
+    "monument": {
+      "pad": [
+        61,
+        51,
+        61
+      ]
+    },
+    "mineshaft": {
+      "pad": [
+        31,
+        21,
+        31
+      ]
+    },
+    "mineshaft_mesa": {
+      "pad": [
+        31,
+        21,
+        31
+      ]
+    },
+    "fortress": {
+      "pad": [
+        43,
+        33,
+        43
+      ]
+    },
+    "bastion_remnant": {
+      "pad": [
+        43,
+        33,
+        43
+      ]
+    },
+    "mansion": {
+      "pad": [
+        61,
+        31,
+        61
+      ]
+    },
+    "stronghold": {
+      "pad": [
+        33,
+        23,
+        33
+      ]
+    },
+    "ancient_city": {
+      "pad": [
+        97,
+        27,
+        97
+      ]
+    },
+    "trail_ruins": {
+      "pad": [
+        17,
+        11,
+        17
+      ]
+    },
+    "trial_chambers": {
+      "pad": [
+        45,
+        35,
+        45
+      ]
+    },
+    "end_city": {
+      "pad": [
+        43,
+        33,
+        43
+      ]
+    },
+    "buried_treasure": {
+      "pad": [
+        5,
+        4,
+        5
+      ]
+    },
+    "nether_fossil": {
+      "pad": [
+        9,
+        6,
+        9
+      ]
+    },
+    "ocean_ruin_cold": {
+      "pad": [
+        11,
+        6,
+        11
+      ]
+    },
+    "ocean_ruin_warm": {
+      "pad": [
+        11,
+        6,
+        11
+      ]
+    },
+    "shipwreck": {
+      "pad": [
+        25,
+        13,
+        25
+      ]
+    },
+    "shipwreck_beached": {
+      "pad": [
+        25,
+        13,
+        25
+      ]
+    },
+    "village_plains": {
+      "pad": [
+        41,
+        21,
+        41
+      ]
+    },
+    "village_desert": {
+      "pad": [
+        41,
+        21,
+        41
+      ]
+    },
+    "village_savanna": {
+      "pad": [
+        41,
+        21,
+        41
+      ]
+    },
+    "village_snowy": {
+      "pad": [
+        41,
+        21,
+        41
+      ]
+    },
+    "village_taiga": {
+      "pad": [
+        41,
+        21,
+        41
+      ]
+    }
+  },
+  "end_spikes": {
+    "enabled": false,
+    "biome": "end_highlands",
+    "feature_id": "end_spikes",
+    "spikes": [
+      {
+        "guarded": true,
+        "centerZ": 0,
+        "height": 76,
+        "centerX": 42
+      },
+      {
+        "guarded": true,
+        "centerZ": 41,
+        "height": 73,
+        "centerX": 42
+      },
+      {
+        "guarded": true,
+        "centerZ": -41,
+        "height": 73,
+        "centerX": 42
+      },
+      {
+        "guarded": true,
+        "centerZ": 42,
+        "height": 72,
+        "centerX": 0
+      },
+      {
+        "guarded": true,
+        "centerZ": -42,
+        "height": 73,
+        "centerX": 0
+      },
+      {
+        "guarded": true,
+        "centerZ": 0,
+        "height": 76,
+        "centerX": -42
+      },
+      {
+        "guarded": true,
+        "centerZ": 41,
+        "height": 73,
+        "centerX": -42
+      },
+      {
+        "guarded": true,
+        "centerZ": -41,
+        "height": 72,
+        "centerX": -42
+      },
+      {
+        "guarded": false,
+        "centerZ": 0,
+        "height": 71,
+        "centerX": 0
+      }
+    ]
+  },
+  "force_warm_biomes": true,
+  "version": "1.0.3"
+}
